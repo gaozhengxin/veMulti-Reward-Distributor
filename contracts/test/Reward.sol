@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/**
+ * @dev Pseudo Reward contract for testing purposes
+ * reward distributor
+ */
 contract Reward {
     struct RewardInfo {
         uint256 startTime;
