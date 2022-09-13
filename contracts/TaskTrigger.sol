@@ -6,7 +6,7 @@ abstract contract Trigger {
     function _beforeTriggered() public virtual;
     function _afterTriggered() public virtual;
 
-    function triggerTask() external {
+    function triggerTask() external virtual {
         doTask();
         _afterTriggered();
     }

@@ -10,12 +10,13 @@ interface IVE {
 contract CheckpointTrigger is TimedTaskTrigger {
     address public ve;
 
-    constructor (address _ve) {
+    /// @param _ve ve contract address
+    /// @param interval inteval length in second
+    constructor (address _ve, uint256 interval) {
         ve = _ve;
-        uint256 peroid = 4 days;
-        uint256 zeroTime = (block.timestamp / peroid) * peroid;
-        uint256 window = 4 days;
-        _initTimedTask(zeroTime, peroid, window);
+        uint256 zeroTime = (block.timestamp / interval) * peroid;
+        uint256 window = interval;
+        _initTimedTask(zeroTime, interval, window);
     }
 
     function doTask() public override {

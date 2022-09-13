@@ -40,7 +40,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         destChains = destChains_;
     }
 
-    function snapshotTime() public pure returns (uint256) {
+    function snapshotTime() public view returns (uint256) {
         return (block.timestamp / WEEK + 1) * WEEK;
     }
 
