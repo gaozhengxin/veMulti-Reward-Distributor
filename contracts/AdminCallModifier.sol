@@ -3,20 +3,21 @@ pragma solidity ^0.8.0;
 
 /**
  * @dev This abstract contract provides a fallback function that passes all calls to another contract using the EVM
- * instruction `staticcall`.
+ * instruction `call`.
  *
  * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol
  */
-abstract contract Modifier {
+abstract contract CallModifier {
     /**
      * @dev Passes the current call to `implementation`.
      */
     function _call(address implementation) internal virtual {
         assembly {
             calldatacopy(0, 0, calldatasize())
-            let result := staticcall(
+            let result := call(
                 gas(),
                 implementation,
+                callvalue(),
                 0,
                 calldatasize(),
                 0,
@@ -74,25 +75,56 @@ abstract contract Modifier {
     function _beforeFallback() internal virtual {}
 }
 
-contract AdminModifier is Modifier {
-    address public admin;
+/**
+ * @dev This contract is going to take the administratorship
+ * of the underlying contract.
+ * Admin of this contract can call any function of the
+ * underlying contract as admin.
+ * Admin of this contract can renounce administratorship
+ * of this contract to the underlying contract.
+ */
+contract AdminCallModifier is CallModifier {
+    address public owner;
+    mapping(address => bool) public whitelist;
     address public underlying;
+
+    constructor (address underlying_) {
+        owner = msg.sender;
+        whitelist[owner] = true;
+        underlying = underlying_;
+    }
+
+    /** @dev Change owner of this contract.
+     * Change the function name if the 
+     * underlying contract has the function of the same name.
+    */
+    function transferOwner(address to) external {
+        require(msg.sender == owner);
+        owner = to;
+    }
+
+    function setWhitelist(address caller, bool allow) public {
+        require(msg.sender == owner);
+        whitelist[caller] = allow;
+    }
 
     function _underlying() internal view override returns (address) {
         return underlying;
     }
 
     /**
-     * @dev Checks current call is from this contract or from admin.
+     * @dev Checks current msg.sender is this contract or from admin.
+     * Change the function name if the
+     * underlying contract has the function of the same name
      */
-    function checkAdmin() public view {
-        require(msg.sender == address(this) || msg.sender == admin);
+    function checkCaller() public view {
+        require(whitelist[msg.sender]);
     }
 
     /**
      * @dev Only calls from this contract or from admin can fallback to underlying contract.
      */
     function _beforeFallback() internal view override {
-        checkAdmin();
+        checkCaller();
     }
 }

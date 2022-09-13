@@ -14,7 +14,7 @@ interface IReward {
 
 contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     address public ve;
-    address public reward; // AdminModifier
+    address public reward; // AdminCallModifier
     uint256 constant WEEK = 1 weeks;
     uint256[] public destChains;
     mapping(uint256 => uint256) public totalReward; // week -> totalReward
