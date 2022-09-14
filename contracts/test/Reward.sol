@@ -14,6 +14,8 @@ contract Reward {
 
     RewardInfo public rewardInfo;
 
+    event AddEpoch(RewardInfo info);
+
     address public admin;
 
     modifier onlyAdmin() {
@@ -31,6 +33,7 @@ contract Reward {
 
     function addEpoch(uint startTime, uint endTime, uint totalReward) external onlyAdmin returns(uint, uint) {
         rewardInfo = RewardInfo(startTime, endTime, totalReward);
+        emit AddEpoch(rewardInfo);
         return (1,1);
     }
 }
