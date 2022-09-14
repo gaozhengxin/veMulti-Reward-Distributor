@@ -13,6 +13,7 @@ abstract contract TimedTaskTrigger is Trigger {
         uint256 peroid_,
         uint256 window_
     ) internal {
+        require(window_ <= peroid_, "invalid time params");
         zeroTime = zeroTime_;
         peroid = peroid_;
         window = window_;
@@ -21,6 +22,9 @@ abstract contract TimedTaskTrigger is Trigger {
     uint256 public lastTriggerTime;
 
     function currentPeroid() view public returns (uint256) {
+        if (block.timestamp < zeroTime) {
+            return 0;
+        }
         return (block.timestamp - zeroTime) / peroid;
     }
 
@@ -28,7 +32,7 @@ abstract contract TimedTaskTrigger is Trigger {
         uint256 currentPeroid_ = currentPeroid();
         require(lastTriggerTime < currentPeroid_ * peroid, "already triggered");
 
-        uint256 start = (uint256(currentPeroid_)) * peroid + zeroTime;
+        uint256 start = currentPeroid_ * peroid + zeroTime;
         uint256 end = start + window;
         require(block.timestamp >= start && block.timestamp < end, "currently not available");
 
@@ -39,9 +43,5 @@ abstract contract TimedTaskTrigger is Trigger {
         lastTriggerTime = block.timestamp;
 
         this._afterTriggered();
-    }
-
-    function triggerTask() override external {
-        this.triggerTask();
     }
 }
