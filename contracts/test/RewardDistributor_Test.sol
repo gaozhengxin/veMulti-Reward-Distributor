@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./TimedTaskTrigger.sol";
-import "./AnyCallApp.sol";
+import "../TimedTaskTrigger.sol";
+import "../AnyCallApp.sol";
 
 interface IVE {
     function totalSupplyAtT(uint256 t) external view returns (uint256); // query total power at a future time
@@ -12,10 +12,10 @@ interface IReward {
     function addEpoch(uint startTime, uint endTime, uint totalReward) external returns(uint, uint);
 }
 
-contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
+contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
     address public ve;
     address public reward; // AdminCallModifier
-    uint256 constant WEEK = 1 weeks;
+    uint256 constant HOUR = 1 hours;
     uint256[] public destChains;
     mapping(uint256 => uint256) public totalReward; // week -> totalReward
 
@@ -35,15 +35,15 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         setAdmin(msg.sender);
         ve = _ve;
         reward = _reward;
-        uint256 peroid = WEEK;
-        uint256 zeroTime = (block.timestamp / WEEK + 1) * WEEK - 3600 * 12;
-        uint256 window = 3600 * 6;
+        uint256 peroid = HOUR;
+        uint256 zeroTime = (block.timestamp / HOUR + 1) * HOUR - 600;
+        uint256 window = 300;
         _initTimedTask(zeroTime, peroid, window);
         destChains = destChains_;
     }
 
     function snapshotTime() public view returns (uint256) {
-        return (block.timestamp / WEEK + 1) * WEEK;
+        return (block.timestamp / HOUR + 1) * HOUR;
     }
 
     function setTotalReward(uint256[] calldata weekNums, uint256 _totalReward) external onlyAdmin {
@@ -55,7 +55,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     function doTask() public override {
         // query total power
         power = Power(
-            block.timestamp / WEEK + 1,
+            block.timestamp / HOUR + 1,
             IVE(ve).totalSupplyAtT(snapshotTime())
         );
         // send anycall message
@@ -70,7 +70,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         override
         returns (bool success, bytes memory result)
     {
-        assert(power.week == block.timestamp / WEEK + 1);
+        assert(power.week == block.timestamp / HOUR + 1);
         Power memory peerPower = abi.decode(data, (Power));
         peerPowers[fromChainID] = peerPower;
         // check all arrived
@@ -83,8 +83,8 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         }
         emit TotalReward(totalPower);
         // set reward
-        uint start = (power.week) * WEEK;
-        uint end = start + WEEK;
+        uint start = (power.week) * HOUR;
+        uint end = start + HOUR;
         uint rewardi = power.value * totalReward[power.week] / totalPower;
         // set reward
         (uint epochId, uint accurateTotalReward) = IReward(reward).addEpoch(start, end, rewardi);
