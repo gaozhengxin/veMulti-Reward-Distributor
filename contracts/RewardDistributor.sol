@@ -15,12 +15,12 @@ interface IReward {
 contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     address public ve;
     address public reward; // AdminCallModifier
-    uint256 constant WEEK = 1 weeks;
+    uint256 constant interval = 1 weeks;
     uint256[] public destChains;
-    mapping(uint256 => uint256) public totalReward; // week -> totalReward
+    mapping(uint256 => uint256) public totalReward; // epoch -> totalReward
 
     struct Power {
-        uint256 week;
+        uint256 epoch;
         uint256 value;
     }
 
@@ -46,13 +46,13 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         return (block.timestamp / WEEK + 1) * WEEK;
     }
 
-    function setTotalReward(uint256[] calldata weekNums, uint256 _totalReward) external onlyAdmin {
-        for (uint i = 0; i < weekNums.length; i++) {
-            totalReward[weekNums[i]] = _totalReward;
+    function setTotalReward(uint256[] calldata epochNums, uint256 _totalReward) external onlyAdmin {
+        for (uint i = 0; i < epochNums.length; i++) {
+            totalReward[epochNums[i]] = _totalReward;
         }
     }
 
-    function doTask() public override {
+    function doTask() internal override {
         // query total power
         power = Power(
             block.timestamp / WEEK + 1,
@@ -70,22 +70,22 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         override
         returns (bool success, bytes memory result)
     {
-        assert(power.week == block.timestamp / WEEK + 1);
+        assert(power.epoch == block.timestamp / WEEK + 1);
         Power memory peerPower = abi.decode(data, (Power));
         peerPowers[fromChainID] = peerPower;
         // check all arrived
         uint256 totalPower = 0;
         for (uint i = 0; i < destChains.length; i++) {
-            if (peerPowers[destChains[i]].week != power.week) {
+            if (peerPowers[destChains[i]].epoch != power.epoch) {
                 return (true, "");
             }
             totalPower += peerPowers[destChains[i]].value;
         }
         emit TotalReward(totalPower);
         // set reward
-        uint start = (power.week) * WEEK;
+        uint start = (power.epoch) * WEEK;
         uint end = start + WEEK;
-        uint rewardi = power.value * totalReward[power.week] / totalPower;
+        uint rewardi = power.value * totalReward[power.epoch] / totalPower;
         // set reward
         (uint epochId, uint accurateTotalReward) = IReward(reward).addEpoch(start, end, rewardi);
         emit SetReward(epochId, accurateTotalReward);

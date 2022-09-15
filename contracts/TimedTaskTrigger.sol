@@ -23,25 +23,25 @@ abstract contract TimedTaskTrigger is Trigger {
 
     function currentPeroid() view public returns (uint256) {
         if (block.timestamp < zeroTime) {
-            return 0;
+            return 1;
         }
-        return (block.timestamp - zeroTime) / peroid;
+        return (block.timestamp - zeroTime) / peroid + 1;
     }
 
-    function _beforeTriggered() public override {
+    function _beforeTriggered() internal override {
+        super._beforeTriggered();
+    
         uint256 currentPeroid_ = currentPeroid();
-        require(lastTriggerTime < currentPeroid_ * peroid, "already triggered");
 
-        uint256 start = currentPeroid_ * peroid + zeroTime;
+        uint256 start = (currentPeroid_ - 1) * peroid + zeroTime;
         uint256 end = start + window;
+        require(lastTriggerTime < start, "already triggered");
         require(block.timestamp >= start && block.timestamp < end, "currently not available");
-
-        this._beforeTriggered();
     }
 
-    function _afterTriggered() public override {
+    function _afterTriggered() internal override {
         lastTriggerTime = block.timestamp;
 
-        this._afterTriggered();
+        super._afterTriggered();
     }
 }
