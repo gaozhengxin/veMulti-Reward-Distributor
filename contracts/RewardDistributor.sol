@@ -35,15 +35,14 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         setAdmin(msg.sender);
         ve = _ve;
         reward = _reward;
-        uint256 peroid = WEEK;
-        uint256 zeroTime = (block.timestamp / WEEK + 1) * WEEK - 3600 * 12;
+        uint256 zeroTime = (block.timestamp / interval + 1) * interval - 3600 * 12;
         uint256 window = 3600 * 6;
         _initTimedTask(zeroTime, peroid, window);
         destChains = destChains_;
     }
 
     function snapshotTime() public view returns (uint256) {
-        return (block.timestamp / WEEK + 1) * WEEK;
+        return (block.timestamp / interval + 1) * interval;
     }
 
     function setTotalReward(uint256[] calldata epochNums, uint256 _totalReward) external onlyAdmin {
@@ -55,7 +54,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     function doTask() internal override {
         // query total power
         power = Power(
-            block.timestamp / WEEK + 1,
+            block.timestamp / interval + 1,
             IVE(ve).totalSupplyAtT(snapshotTime())
         );
         // send anycall message
@@ -70,7 +69,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         override
         returns (bool success, bytes memory result)
     {
-        assert(power.epoch == block.timestamp / WEEK + 1);
+        assert(power.epoch == block.timestamp / interval + 1);
         Power memory peerPower = abi.decode(data, (Power));
         peerPowers[fromChainID] = peerPower;
         // check all arrived
@@ -83,8 +82,8 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         }
         emit TotalReward(totalPower);
         // set reward
-        uint start = (power.epoch) * WEEK;
-        uint end = start + WEEK;
+        uint start = (power.epoch) * interval;
+        uint end = start + interval;
         uint rewardi = power.value * totalReward[power.epoch] / totalPower;
         // set reward
         (uint epochId, uint accurateTotalReward) = IReward(reward).addEpoch(start, end, rewardi);
