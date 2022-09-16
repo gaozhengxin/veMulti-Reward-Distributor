@@ -74,7 +74,7 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
         Power memory peerPower = abi.decode(data, (Power));
         peerPowers[fromChainID] = peerPower;
         // check all arrived
-        uint256 totalPower = 0;
+        uint256 totalPower = power.value;
         for (uint i = 0; i < destChains.length; i++) {
             if (peerPowers[destChains[i]].epoch != power.epoch) {
                 return (true, "");
