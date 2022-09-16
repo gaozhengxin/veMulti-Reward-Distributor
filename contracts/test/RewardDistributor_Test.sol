@@ -9,7 +9,11 @@ interface IVE {
 }
 
 interface IReward {
-    function addEpoch(uint startTime, uint endTime, uint totalReward) external returns(uint, uint);
+    function addEpoch(
+        uint256 startTime,
+        uint256 endTime,
+        uint256 totalReward
+    ) external returns (uint256, uint256);
 }
 
 contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
@@ -32,7 +36,12 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
 
     uint256 interval = 15 minutes;
 
-    constructor(address _ve, address _reward, uint256[] memory destChains_, address anyCallProxy) AnyCallApp(anyCallProxy, 2) {
+    constructor(
+        address _ve,
+        address _reward,
+        uint256[] memory destChains_,
+        address anyCallProxy
+    ) AnyCallApp(anyCallProxy, 2) {
         setAdmin(msg.sender);
         ve = _ve;
         reward = _reward;
@@ -46,10 +55,17 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
         return (block.timestamp / interval + 1) * interval;
     }
 
-    function setTotalReward(uint256[] calldata epochNums, uint256 _totalReward) external onlyAdmin {
-        for (uint i = 0; i < epochNums.length; i++) {
+    function setTotalReward(uint256[] calldata epochNums, uint256 _totalReward)
+        external
+        onlyAdmin
+    {
+        for (uint256 i = 0; i < epochNums.length; i++) {
             totalReward[epochNums[i]] = _totalReward;
         }
+    }
+
+    function currentEpoch() public view returns (uint256) {
+        return block.timestamp / interval + 1;
     }
 
     function doTask() internal override {
@@ -60,7 +76,7 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
         );
         // send anycall message
         bytes memory acmsg = abi.encode(power);
-        for (uint i = 0; i < destChains.length; i++) {
+        for (uint256 i = 0; i < destChains.length; i++) {
             _anyCall(peer[destChains[i]], acmsg, address(0), destChains[i]);
         }
     }
@@ -75,7 +91,7 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
         peerPowers[fromChainID] = peerPower;
         // check all arrived
         uint256 totalPower = power.value;
-        for (uint i = 0; i < destChains.length; i++) {
+        for (uint256 i = 0; i < destChains.length; i++) {
             if (peerPowers[destChains[i]].epoch != power.epoch) {
                 return (true, "");
             }
@@ -83,11 +99,12 @@ contract RewardDistributor_Test is TimedTaskTrigger, AnyCallApp {
         }
         emit TotalReward(totalPower);
         // set reward
-        uint start = (power.epoch) * interval;
-        uint end = start + interval;
-        uint rewardi = power.value * totalReward[power.epoch] / totalPower;
+        uint256 start = (power.epoch) * interval;
+        uint256 end = start + interval;
+        uint256 rewardi = (power.value * totalReward[power.epoch]) / totalPower;
         // set reward
-        (uint epochId, uint accurateTotalReward) = IReward(reward).addEpoch(start, end, rewardi);
+        (uint256 epochId, uint256 accurateTotalReward) = IReward(reward)
+            .addEpoch(start, end, rewardi);
         emit SetReward(epochId, accurateTotalReward);
         return (true, "");
     }
