@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./TimedTaskTrigger.sol";
-import "./AnyCallApp.sol";
+import "./messageChannel/MessageChannel.sol";
+import "./Administrable.sol";
 
 interface IVE {
     function totalSupplyAtT(uint256 t) external view returns (uint256); // query total power at a future time
@@ -16,11 +17,12 @@ interface IReward {
     ) external returns (uint256, uint256);
 }
 
-contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
+contract RewardDistributor is TimedTaskTrigger, Administrable, IMessageClient {
     address public ve;
     address public reward; // AdminCallModifier
     uint256 constant interval = 1 weeks;
     uint256[] public destChains;
+    IMessageChannel public messageChannel;
     mapping(uint256 => uint256) public totalReward; // epoch -> totalReward
 
     struct Power {
@@ -29,6 +31,7 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     }
 
     Power public power;
+    mapping(uint256 => address) public peer;
 
     mapping(uint256 => Power) public peerPowers;
 
@@ -38,9 +41,8 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
     constructor(
         address _ve,
         address _reward,
-        uint256[] memory destChains_,
-        address anyCallProxy
-    ) AnyCallApp(anyCallProxy, 2) {
+        uint256[] memory destChains_
+    ) {
         setAdmin(msg.sender);
         ve = _ve;
         reward = _reward;
@@ -79,23 +81,24 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         // send anycall message
         bytes memory acmsg = abi.encode(power);
         for (uint256 i = 0; i < destChains.length; i++) {
-            _anyCall(peer[destChains[i]], acmsg, address(0), destChains[i]);
+            messageChannel.send(destChains[i], peer[destChains[i]], acmsg);
         }
     }
 
-    function _anyExecute(uint256 fromChainID, bytes calldata data)
-        internal
-        override
-        returns (bool success, bytes memory result)
-    {
+    function onReceiveMessage(
+        address caller,
+        uint256 fromChainID,
+        bytes memory message
+    ) external override {
+        require(peer[fromChainID] == caller);
         assert(power.epoch == block.timestamp / interval + 1);
-        Power memory peerPower = abi.decode(data, (Power));
+        Power memory peerPower = abi.decode(message, (Power));
         peerPowers[fromChainID] = peerPower;
         // check all arrived
         uint256 totalPower = power.value;
         for (uint256 i = 0; i < destChains.length; i++) {
             if (peerPowers[destChains[i]].epoch != power.epoch) {
-                return (true, "");
+                return;
             }
             totalPower += peerPowers[destChains[i]].value;
         }
@@ -108,6 +111,6 @@ contract RewardDistributor is TimedTaskTrigger, AnyCallApp {
         (uint256 epochId, uint256 accurateTotalReward) = IReward(reward)
             .addEpoch(start, end, rewardi);
         emit SetReward(epochId, accurateTotalReward);
-        return (true, "");
+        return;
     }
 }

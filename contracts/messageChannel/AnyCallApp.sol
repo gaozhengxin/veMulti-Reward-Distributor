@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./Administrable.sol";
+import "../Administrable.sol";
 import "./IAnycallV6Proxy.sol";
 import "./IExecutor.sol";
 

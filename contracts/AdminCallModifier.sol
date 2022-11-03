@@ -88,24 +88,29 @@ contract AdminCallModifier is CallModifier {
     mapping(address => bool) public whitelist;
     address public underlying;
 
-    constructor (address underlying_) {
+    event Whitelist(address account, bool white);
+    event TransferOwner(address newOwner);
+
+    constructor(address underlying_) {
         owner = msg.sender;
         whitelist[owner] = true;
         underlying = underlying_;
     }
 
     /** @dev Change owner of this contract.
-     * Change the function name if the 
+     * Change the function name if the
      * underlying contract has the function of the same name.
-    */
+     */
     function transferOwner(address to) external {
         require(msg.sender == owner);
         owner = to;
+        emit TransferOwner(owner);
     }
 
     function setWhitelist(address caller, bool allow) public {
         require(msg.sender == owner);
         whitelist[caller] = allow;
+        emit Whitelist(caller, allow);
     }
 
     function _underlying() internal view override returns (address) {
