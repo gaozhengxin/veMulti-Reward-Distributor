@@ -5,7 +5,9 @@ import "./AnyCallApp.sol";
 import "./MessageChannel.sol";
 
 contract AnyCallV6Adaptor is AnyCallApp, MessageChannelBase {
-    constructor(address anyCallProxy) AnyCallApp(anyCallProxy, 2) {}
+    constructor(address anyCallProxy) AnyCallApp(anyCallProxy, 2) {
+        setAdmin(msg.sender);
+    }
 
     function _anyExecute(uint256 fromChainID, bytes calldata data)
         internal

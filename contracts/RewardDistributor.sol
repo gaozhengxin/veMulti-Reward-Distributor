@@ -37,6 +37,7 @@ contract RewardDistributor is TimedTaskTrigger, Administrable, IMessageClient {
 
     event TotalReward(uint256 totalReward);
     event SetReward(uint256 epochId, uint256 accurateTotalReward);
+    event LatestReward(uint256 accurateTotalReward);
 
     constructor(
         address _ve,
@@ -51,8 +52,17 @@ contract RewardDistributor is TimedTaskTrigger, Administrable, IMessageClient {
             3600 *
             12;
         uint256 window = 3600 * 6;
+        uint256 peroid = 1 weeks;
         _initTimedTask(zeroTime, peroid, window);
         destChains = destChains_;
+    }
+
+    function setMessageChannel(address messageChannel_) public onlyAdmin {
+        messageChannel = IMessageChannel(messageChannel_);
+    }
+
+    function setPeer(uint256 chain, address peer_) public onlyAdmin {
+        peer[chain] = peer_;
     }
 
     function snapshotTime() public view returns (uint256) {
@@ -108,9 +118,10 @@ contract RewardDistributor is TimedTaskTrigger, Administrable, IMessageClient {
         uint256 end = start + interval;
         uint256 rewardi = (power.value * totalReward[power.epoch]) / totalPower;
         // set reward
-        (uint256 epochId, uint256 accurateTotalReward) = IReward(reward)
-            .addEpoch(start, end, rewardi);
-        emit SetReward(epochId, accurateTotalReward);
+        /*(uint256 epochId, uint256 accurateTotalReward) = IReward(reward)
+            .addEpoch(start, end, rewardi);*/
+        //emit SetReward(epochId, accurateTotalReward);
+        emit LatestReward(rewardi);
         return;
     }
 }
